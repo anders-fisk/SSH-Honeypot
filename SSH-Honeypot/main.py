@@ -1,6 +1,7 @@
 """Basic server for password auth."""
 import logging
 import socket
+import threading
 
 import paramiko
 
@@ -14,6 +15,13 @@ logging.getLogger("paramiko").setLevel(logging.WARNING)
 HOSTKEY_ED25519 = paramiko.Ed25519Key(filename="C:/Users/user/.ssh/id_ed25519.txt")
 
 class Server(paramiko.ServerInterface):
+    # all these functions get called automatically
+    def __init__(self):
+        self.event = threading.Event()
+
+    # check_channel_request and check_auth_password are both need to be implemented manually
+    # otherwise will return negative default
+
     def check_channel_request(self, kind, chanid):
         if kind == "session" :
             return paramiko.OPEN_SUCCEEDED
@@ -29,13 +37,11 @@ class Server(paramiko.ServerInterface):
     def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
         self.event.set()
         cmd = command.decode()
-        print("skibidi")
         logger.info("channel_exec request received: %s", cmd)
-
         if cmd == "banner" :
             self.banner(channel)
 
-        elif cmd.startswith("echo ") :
+        elif cmd.split(' ')[0] == "echo" :
             self.echo(channel, cmd)
         else:
             return False
@@ -43,15 +49,16 @@ class Server(paramiko.ServerInterface):
 
 # these two functions give the program two different command options, either display the banner or echo back the cmd
     def banner(self, chan: paramiko.Channel):
-        chan.send(
-            """===== Test server banner =====
-    We should include some ascii art...
-    """
-        )
+        banner="""===== Test server banner =====
+                We should include some ascii art...
+            """
+        banner.encode("utf-8")
+        chan.send(banner)
+
 
     def echo(self, chan: paramiko.Channel, cmd: str):
-        _, s = cmd.split("echo ")
-        chan.send(s)
+        cmd = cmd.encode("utf-8")
+        chan.send(cmd)
 
 def listen():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -63,12 +70,24 @@ def listen():
     t = paramiko.Transport(client)
     t.add_server_key(HOSTKEY_ED25519)
 
-    # Starts the server and negotiates a new session as server. Either returns
+    # Starts the server and negotiates a new session as server
     server = Server()
     t.start_server(server=server)
 
-    t.accept(timeout=20)  # blocks until channel opens
+
+    chan = t.accept(20)
+    if chan is None:
+        print("[Server] No channel opened.")
+        t.close()
+        return
+
     print(f"[Server] Channel opened successfully:")
+    print(t.get_username())
+
+    server.event.wait(timeout=10)
+
+    # Cleanly close the channel, then the transport
+    chan.close()
     t.close()
 
 if __name__ == "__main__":
