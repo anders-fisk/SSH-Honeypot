@@ -17,6 +17,7 @@ HOSTKEY_ED25519 = paramiko.Ed25519Key(filename="C:/Users/user/.ssh/id_ed25519.tx
 class Server(paramiko.ServerInterface):
     # all these functions get called automatically
     def __init__(self):
+        # used to distinguish different running threads in the progrma
         self.event = threading.Event()
 
     # check_channel_request and check_auth_password are both need to be implemented manually
@@ -52,7 +53,7 @@ class Server(paramiko.ServerInterface):
         banner="""===== Test server banner =====
                 We should include some ascii art...
             """
-        banner.encode("utf-8")
+        banner = banner.encode("utf-8")
         chan.send(banner)
 
 
