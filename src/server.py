@@ -83,6 +83,7 @@ def listen():
         return
 
     print(f"[Server] Channel opened successfully:")
+    # function for retrieving username, part of paramiko
     print(t.get_username())
 
     server.event.wait(timeout=10)
