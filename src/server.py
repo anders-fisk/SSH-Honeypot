@@ -1,9 +1,8 @@
 """Basic server for password auth."""
 import logging
-import socket
 import threading
-
 import paramiko
+import socket
 
 # Set up logging globally.
 # basically an alternative for print, just puts DEBUG before everything
@@ -11,6 +10,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 # silences paramikos logger
 logging.getLogger("paramiko").setLevel(logging.WARNING)
+
+# presents the client with a host key to add to known hosts
+# sign(H, private_key)   = H raised to a secret power, mod some number
+# verify(signature, public_key) = signature raised to the public power, mod the same number
+# use ed25519 since smaller, faster, more modern, less vulnerabilities
+
 
 HOSTKEY_ED25519 = paramiko.Ed25519Key(filename="C:/Users/user/.ssh/id_ed25519.txt")
 
@@ -91,15 +96,3 @@ def listen():
     # Cleanly close the channel, then the transport
     chan.close()
     t.close()
-
-if __name__ == "__main__":
-    while True:
-        try:
-            listen()
-        except KeyboardInterrupt:
-            exit(0)
-        except OSError:
-            logger.exception("Caught OSError, usually address already in use")
-            exit(1)
-        except Exception as exc:
-            logger.error(exc)
