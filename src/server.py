@@ -11,14 +11,6 @@ logger = logging.getLogger()
 # silences paramikos logger
 logging.getLogger("paramiko").setLevel(logging.WARNING)
 
-# presents the client with a host key to add to known hosts
-# sign(H, private_key)   = H raised to a secret power, mod some number
-# verify(signature, public_key) = signature raised to the public power, mod the same number
-# use ed25519 since smaller, faster, more modern, less vulnerabilities
-
-
-HOSTKEY_ED25519 = paramiko.Ed25519Key(filename="C:/Users/user/.ssh/id_ed25519.txt")
-
 class Server(paramiko.ServerInterface):
     # all these functions get called automatically
     def __init__(self):
@@ -72,8 +64,15 @@ def listen():
     sock.bind(("", 2222))
     sock.listen(100)
     client, addr = sock.accept()
-
     t = paramiko.Transport(client)
+
+    # presents the client with a host key to add to known hosts
+    # sign(H, private_key)   = H raised to a secret power, mod some number
+    # verify(signature, public_key) = signature raised to the public power, mod the same number
+    # use ed25519 since smaller, faster, more modern, less vulnerabilities
+
+    HOSTKEY_ED25519 = paramiko.Ed25519Key(filename="keys/host_key")
+
     t.add_server_key(HOSTKEY_ED25519)
 
     # Starts the server and negotiates a new session as server
