@@ -1,4 +1,5 @@
 """Basic server for password auth."""
+from keypair import generate_host_key
 import logging
 import threading
 import paramiko
@@ -59,6 +60,9 @@ class Server(paramiko.ServerInterface):
         chan.send(cmd)
 
 def listen():
+    # generates key_pair
+    generate_host_key()
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(("", 2222))
