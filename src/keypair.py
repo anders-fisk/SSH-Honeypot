@@ -1,7 +1,6 @@
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.serialization import load_ssh_private_key
-from server import listen
 
 import os
 # add terminal confirmations for this method
@@ -41,16 +40,3 @@ def generate_host_key() :
         # writes the key to the file
         with open(key_path, "wb") as f:
             f.write(pem)
-
-if __name__ == "__main__":
-    generate_host_key()
-    while True:
-        try:
-            listen()
-        except KeyboardInterrupt:
-            exit(0)
-     #   except OSError:
-            print("Caught OSError, usually address already in use")
-            exit(1)
-        #except Exception as exc:
-            print.error(exc)
