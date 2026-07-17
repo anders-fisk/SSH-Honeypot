@@ -5,6 +5,21 @@ import threading
 import paramiko
 import socket
 
+# different variables for different keys in byte form
+UP_KEY = '\x1b[A'.encode()
+DOWN_KEY = '\x1b[B'.encode()
+RIGHT_KEY = '\x1b[C'.encode()
+LEFT_KEY = '\x1b[D'.encode()
+BACK_KEY = b'\x7f'
+
+# chan.send sends stuff to terminal screen, commands need to be handled differently
+
+# ALTERNATIVE FOR HANDLING COMMANDS
+# RATHER THAN INDIVIDUAL METHOD FOR EACH COMMAND
+def handle_cmd(cmd, chan, ip):
+    print("Command received: {}".format(cmd))
+
+
 # Set up logging globally.
 # basically an alternative for print, just puts DEBUG before everything
 logging.basicConfig(level=logging.DEBUG)
@@ -27,13 +42,11 @@ class Server(paramiko.ServerInterface):
 
 # checks user's password
     def check_auth_password(self, username: str, password: str):
-        if username == "user" and password == "password":
-            return paramiko.AUTH_SUCCESSFUL
-        else:
-            return paramiko.AUTH_FAILED
+        return paramiko.AUTH_SUCCESSFUL
 
 # if program runs with a command
-    def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
+    # have to rework this
+    #def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
         self.event.set()
         cmd = command.decode()
         logger.info("channel_exec request received: %s", cmd)
@@ -44,6 +57,13 @@ class Server(paramiko.ServerInterface):
             self.echo(channel, cmd)
         else:
             return False
+        return True
+
+    def check_channel_shell_request(self, channel):
+        # Allow the user to get a shell
+        return True
+
+    def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
         return True
 
 # these two functions give the program two different command options, either display the banner or echo back the cmd
@@ -84,7 +104,7 @@ def listen():
     t.start_server(server=server)
 
 
-    chan = t.accept(20)
+    chan = t.accept()
     if chan is None:
         print("[Server] No channel opened.")
         t.close()
@@ -94,8 +114,49 @@ def listen():
     # function for retrieving username, part of paramiko
     print(t.get_username())
 
-    server.event.wait(timeout=10)
+    try:
+        chan.send(b"Welcome to Ubuntu 18.04.4 LTS (GNU/Linux 4.15.0-128-generic x86_64)\r\n\r\n")
+        run = True
+        while run:
+            chan.send(b"$ ")
+            command = ""
+            while not command.endswith("\r"):
+                # byte form
+                transport = chan.recv(1024)
+                print("PLACEHOLDER_FOR_IP" + "- received:", transport)
+                # handles backspace character and end charactetr erasing
+                if transport == BACK_KEY :
+                    chan.send(b"\x08 \x08")
+                    command = command[:-1]
 
-    # Cleanly close the channel, then the transport
+                elif (
+                        transport != UP_KEY
+                        and transport != DOWN_KEY
+                        and transport != LEFT_KEY
+                        and transport != RIGHT_KEY
+                ):
+                    chan.send(transport)
+                    command += transport.decode("utf-8")
+
+            # puts curson at start of line
+            chan.send(b"\r\n")
+            # remoces any endspace characteres
+            command = command.rstrip()
+            logging.info('Command receied ({}): {}'.format("PLACEHOLDER_IP", command))
+
+            if command == "exit":
+                print("Connection closed (via exit command): " + "PLACEHOLDER_IP" + "\n")
+                run = False
+
+            else:
+                handle_cmd(command, chan, "PLACEHOLDER_IP")
+
+    except Exception as err:
+        print('!!! Exception: {}: {}'.format(err.__class__, err))
+        try:
+            transport.close()
+        except Exception:
+            pass
+
     chan.close()
     t.close()
