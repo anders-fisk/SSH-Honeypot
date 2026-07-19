@@ -1,5 +1,5 @@
 """Basic server for password auth."""
-from keypair import generate_host_key
+from src.keypair import generate_host_key
 import logging
 import threading
 import paramiko
@@ -13,12 +13,6 @@ LEFT_KEY = '\x1b[D'.encode()
 BACK_KEY = b'\x7f'
 
 # chan.send sends stuff to terminal screen, commands need to be handled differently
-
-# ALTERNATIVE FOR HANDLING COMMANDS
-# RATHER THAN INDIVIDUAL METHOD FOR EACH COMMAND
-def handle_cmd(cmd, chan, ip):
-    print("Command received: {}".format(cmd))
-
 
 # Set up logging globally.
 # basically an alternative for print, just puts DEBUG before everything
@@ -46,7 +40,7 @@ class Server(paramiko.ServerInterface):
 
 # if program runs with a command
     # have to rework this
-    #def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
+    def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
         self.event.set()
         cmd = command.decode()
         logger.info("channel_exec request received: %s", cmd)
@@ -55,6 +49,7 @@ class Server(paramiko.ServerInterface):
 
         elif cmd.split(' ')[0] == "echo" :
             self.echo(channel, cmd)
+
         else:
             return False
         return True
@@ -78,6 +73,68 @@ class Server(paramiko.ServerInterface):
     def echo(self, chan: paramiko.Channel, cmd: str):
         cmd = cmd.encode("utf-8")
         chan.send(cmd)
+        chan.send(b"\r\n")
+
+    def whoami(self, chan: paramiko.Channel, cmd: str):
+        cmd = cmd.encode("utf-8")
+        chan.send(b"root")
+        chan.send(b"\r\n")
+
+def shell_env(server,chan, t):
+    try:
+        chan.send(b"Welcome to Ubuntu 18.04.4 LTS (GNU/Linux 4.15.0-128-generic x86_64)\r\n\r\n")
+        run = True
+        while run:
+            chan.send(b"$ ")
+            command = ""
+            while not command.endswith("\r"):
+                # byte form
+                transport = chan.recv(1024)
+                print("PLACEHOLDER_FOR_IP" + "- received:", transport)
+                # handles backspace character and end charactetr erasing
+                if transport == BACK_KEY :
+                    chan.send(b"\x08 \x08")
+                    command = command[:-1]
+
+                elif (
+                        transport != UP_KEY
+                        and transport != DOWN_KEY
+                        and transport != LEFT_KEY
+                        and transport != RIGHT_KEY
+                ):
+                    chan.send(transport)
+                    command += transport.decode("utf-8")
+
+            # puts curson at start of line
+            chan.send(b"\r\n")
+            # remoces any endspace characteres
+            command = command.rstrip()
+            logging.info('Command receied ({}): {}'.format("PLACEHOLDER_IP", command))
+
+            if "exit" in command:
+                print("Connection closed (via exit command): " + "PLACEHOLDER_IP" + "\n")
+                run = False
+
+            elif "echo" in command:
+                server.echo(chan, command)
+
+            elif "whoami" in command:
+                server.whoami(chan, command)
+
+            else:
+                print(command + " PLACEHOLDER_IP")
+
+    except Exception as err:
+        print('!!! Exception: {}: {}'.format(err.__class__, err))
+    finally:
+        try:
+            chan.close()
+        except Exception:
+            pass
+        try:
+            t.close()
+        except Exception:
+            pass
 
 def listen():
     # generates key_pair
@@ -114,49 +171,8 @@ def listen():
     # function for retrieving username, part of paramiko
     print(t.get_username())
 
-    try:
-        chan.send(b"Welcome to Ubuntu 18.04.4 LTS (GNU/Linux 4.15.0-128-generic x86_64)\r\n\r\n")
-        run = True
-        while run:
-            chan.send(b"$ ")
-            command = ""
-            while not command.endswith("\r"):
-                # byte form
-                transport = chan.recv(1024)
-                print("PLACEHOLDER_FOR_IP" + "- received:", transport)
-                # handles backspace character and end charactetr erasing
-                if transport == BACK_KEY :
-                    chan.send(b"\x08 \x08")
-                    command = command[:-1]
-
-                elif (
-                        transport != UP_KEY
-                        and transport != DOWN_KEY
-                        and transport != LEFT_KEY
-                        and transport != RIGHT_KEY
-                ):
-                    chan.send(transport)
-                    command += transport.decode("utf-8")
-
-            # puts curson at start of line
-            chan.send(b"\r\n")
-            # remoces any endspace characteres
-            command = command.rstrip()
-            logging.info('Command receied ({}): {}'.format("PLACEHOLDER_IP", command))
-
-            if command == "exit":
-                print("Connection closed (via exit command): " + "PLACEHOLDER_IP" + "\n")
-                run = False
-
-            else:
-                handle_cmd(command, chan, "PLACEHOLDER_IP")
-
-    except Exception as err:
-        print('!!! Exception: {}: {}'.format(err.__class__, err))
-        try:
-            transport.close()
-        except Exception:
-            pass
+    # run shell environment
+    shell_env(server, chan, t)
 
     chan.close()
     t.close()
