@@ -40,7 +40,7 @@ class Server(paramiko.ServerInterface):
 
 # if program runs with a command
     # have to rework this
-    def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
+   # def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
         self.event.set()
         cmd = command.decode()
         logger.info("channel_exec request received: %s", cmd)
@@ -85,6 +85,8 @@ def shell_env(server,chan, t):
         chan.send(b"Welcome to Ubuntu 18.04.4 LTS (GNU/Linux 4.15.0-128-generic x86_64)\r\n\r\n")
         run = True
         while run:
+            # makes sure bash symbol doesn't get erased
+            cursor_count = 0
             chan.send(b"$ ")
             command = ""
             while not command.endswith("\r"):
@@ -92,7 +94,8 @@ def shell_env(server,chan, t):
                 transport = chan.recv(1024)
                 print("PLACEHOLDER_FOR_IP" + "- received:", transport)
                 # handles backspace character and end charactetr erasing
-                if transport == BACK_KEY :
+                if BACK_KEY in transport and cursor_count > 0:
+                    cursor_count -= 1
                     chan.send(b"\x08 \x08")
                     command = command[:-1]
 
@@ -101,7 +104,9 @@ def shell_env(server,chan, t):
                         and transport != DOWN_KEY
                         and transport != LEFT_KEY
                         and transport != RIGHT_KEY
+                        and BACK_KEY not in transport
                 ):
+                    cursor_count += 1
                     chan.send(transport)
                     command += transport.decode("utf-8")
 
