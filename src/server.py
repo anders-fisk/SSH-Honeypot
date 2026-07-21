@@ -23,13 +23,16 @@ logger = logging.getLogger()
 # silences paramikos logger
 logging.getLogger("paramiko").setLevel(logging.WARNING)
 
-def shell_env(server,chan, t):
+def shell_env(server,chan):
     try:
         chan.send(b"Welcome to Ubuntu 18.04.4 LTS (GNU/Linux 4.15.0-128-generic x86_64)\r\n\r\n")
         run = True
         while run:
             # makes sure bash symbol doesn't get erased
             cursor_count = 0
+            # implement packet limit
+            packet_count = 0
+
             chan.send(b"$ ")
             command = ""
             while not command.endswith("\r"):
@@ -37,7 +40,11 @@ def shell_env(server,chan, t):
                 transport = chan.recv(1024)
                 print("PLACEHOLDER_FOR_IP" + "- received:", transport)
                 # handles backspace character and end charactetr erasing
-                if BACK_KEY in transport and cursor_count > 0:
+                if packet_count > 500 :
+                    print('MAXIMUM PACKET LIMIT REACHED')
+                    run = False
+
+                elif BACK_KEY in transport and cursor_count > 0:
                     cursor_count -= 1
                     chan.send(b"\x08 \x08")
                     command = command[:-1]
@@ -53,6 +60,7 @@ def shell_env(server,chan, t):
                     chan.send(transport)
                     command += transport.decode("utf-8")
 
+            packet_count += 1
             # puts curson at start of line
             chan.send(b"\r\n")
             # remoces any endspace characteres
@@ -77,10 +85,6 @@ def shell_env(server,chan, t):
     finally:
         try:
             chan.close()
-        except Exception:
-            pass
-        try:
-            t.close()
         except Exception:
             pass
 
@@ -180,7 +184,8 @@ def listen():
     print(f"[Server] Channel opened successfully:")
     # function for retrieving username, part of paramiko
     print(t.get_username())
-    shell_env(server, chan, t)
+    print(t.getpeername())
+    shell_env(server, chan)
 
     chan.close()
     t.close()
