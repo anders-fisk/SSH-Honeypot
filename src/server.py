@@ -117,6 +117,9 @@ class Server(paramiko.ServerInterface):
         elif cmd.split(' ')[0] == "echo" :
             self.echo(channel, cmd)
 
+        elif cmd.split(' ')[0] == "whoami":
+            self.whoami(channel, cmd)
+
         else:
             return False
         channel.send_exit_status(0)
@@ -125,7 +128,8 @@ class Server(paramiko.ServerInterface):
         return True
 
     def check_channel_shell_request(self, channel):
-        # Allow the user to get a shell
+        # makes sure event is set if it is a shell request
+        self.event.set()
         return True
 
     def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
@@ -185,7 +189,10 @@ def listen():
     # function for retrieving username, part of paramiko
     print(t.get_username())
     print(t.getpeername())
-    shell_env(server, chan)
+
+    # wait up to 10s for a shell/exec request to land
+    if server.event.wait(10):
+        shell_env(server, chan)
 
     chan.close()
     t.close()
