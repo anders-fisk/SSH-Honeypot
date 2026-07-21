@@ -1,4 +1,6 @@
 """Basic server for password auth."""
+from paramiko import transport
+
 from src.keypair import generate_host_key
 import logging
 import threading
@@ -20,65 +22,6 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 # silences paramikos logger
 logging.getLogger("paramiko").setLevel(logging.WARNING)
-
-class Server(paramiko.ServerInterface):
-    # all these functions get called automatically
-    def __init__(self):
-        # used to distinguish different running threads in the progrma
-        self.event = threading.Event()
-
-    # check_channel_request and check_auth_password are both need to be implemented manually
-    # otherwise will return negative default
-
-    def check_channel_request(self, kind, chanid):
-        if kind == "session" :
-            return paramiko.OPEN_SUCCEEDED
-
-# checks user's password
-    def check_auth_password(self, username: str, password: str):
-        return paramiko.AUTH_SUCCESSFUL
-
-# if program runs with a command
-    # have to rework this
-   # def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
-        self.event.set()
-        cmd = command.decode()
-        logger.info("channel_exec request received: %s", cmd)
-        if cmd == "banner" :
-            self.banner(channel)
-
-        elif cmd.split(' ')[0] == "echo" :
-            self.echo(channel, cmd)
-
-        else:
-            return False
-        return True
-
-    def check_channel_shell_request(self, channel):
-        # Allow the user to get a shell
-        return True
-
-    def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
-        return True
-
-# these two functions give the program two different command options, either display the banner or echo back the cmd
-    def banner(self, chan: paramiko.Channel):
-        banner="""===== Test server banner =====
-                We should include some ascii art...
-            """
-        banner = banner.encode("utf-8")
-        chan.send(banner)
-
-
-    def echo(self, chan: paramiko.Channel, cmd: str):
-        cmd = cmd.encode("utf-8")
-        chan.send(cmd)
-        chan.send(b"\r\n")
-
-    def whoami(self, chan: paramiko.Channel, cmd: str):
-        cmd = cmd.encode("utf-8")
-        chan.send(b"root")
-        chan.send(b"\r\n")
 
 def shell_env(server,chan, t):
     try:
@@ -141,6 +84,68 @@ def shell_env(server,chan, t):
         except Exception:
             pass
 
+class Server(paramiko.ServerInterface):
+    # all these functions get called automatically
+    def __init__(self):
+        # used to distinguish different running threads in the progrma
+        self.event = threading.Event()
+
+    # check_channel_request and check_auth_password are both need to be implemented manually
+    # otherwise will return negative default
+
+    def check_channel_request(self, kind, chanid):
+        if kind == "session" :
+            return paramiko.OPEN_SUCCEEDED
+
+# checks user's password
+    def check_auth_password(self, username: str, password: str):
+        return paramiko.AUTH_SUCCESSFUL
+
+# if program runs with a command
+    # have to rework this
+    def check_channel_exec_request(self, channel: paramiko.Channel, command: bytes):
+        self.event.set()
+        cmd = command.decode()
+        logger.info("channel_exec request received: %s", cmd)
+        if cmd == "banner" :
+            self.banner(channel)
+
+        elif cmd.split(' ')[0] == "echo" :
+            self.echo(channel, cmd)
+
+        else:
+            return False
+        channel.send_exit_status(0)
+        channel.send(b'\n')
+        channel.close()
+        return True
+
+    def check_channel_shell_request(self, channel):
+        # Allow the user to get a shell
+        return True
+
+    def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
+        return True
+
+# these two functions give the program two different command options, either display the banner or echo back the cmd
+    def banner(self, chan: paramiko.Channel):
+        banner="""===== Test server banner =====
+                We should include some ascii art...
+            """
+        banner = banner.encode("utf-8")
+        chan.send(banner)
+
+
+    def echo(self, chan: paramiko.Channel, cmd: str):
+        cmd = cmd.split(' ')[1]
+        cmd = cmd.encode("utf-8")
+        chan.send(cmd)
+
+    def whoami(self, chan: paramiko.Channel, cmd: str):
+        cmd = cmd.encode("utf-8")
+        chan.send(b"root")
+
+
 def listen():
     # generates key_pair
     generate_host_key()
@@ -175,8 +180,6 @@ def listen():
     print(f"[Server] Channel opened successfully:")
     # function for retrieving username, part of paramiko
     print(t.get_username())
-
-    # run shell environment
     shell_env(server, chan, t)
 
     chan.close()
