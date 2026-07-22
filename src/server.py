@@ -23,58 +23,66 @@ logger = logging.getLogger()
 # silences paramikos logger
 logging.getLogger("paramiko").setLevel(logging.WARNING)
 
-def shell_env(server,chan):
+def shell_env(server,chan, username, ip_address):
     try:
         chan.send(b"Welcome to Ubuntu 18.04.4 LTS (GNU/Linux 4.15.0-128-generic x86_64)\r\n\r\n")
         run = True
+        packet_count = 0
+
         while run:
             # makes sure bash symbol doesn't get erased
             cursor_count = 0
             # implement packet limit
-            packet_count = 0
 
             chan.send(b"$ ")
             command = ""
             while not command.endswith("\r"):
                 # byte form
-                transport = chan.recv(1024)
-                print("PLACEHOLDER_FOR_IP" + "- received:", transport)
+                received_bytes = chan.recv(1024)
+                print("{}@{} ".format(username, ip_address) + "- received:", received_bytes)
                 # handles backspace character and end charactetr erasing
                 if packet_count > 500 :
                     print('MAXIMUM PACKET LIMIT REACHED')
                     run = False
 
-                elif BACK_KEY in transport and cursor_count > 0:
+                elif BACK_KEY in received_bytes and cursor_count > 0:
                     cursor_count -= 1
                     chan.send(b"\x08 \x08")
                     command = command[:-1]
 
                 elif (
-                        transport != UP_KEY
-                        and transport != DOWN_KEY
-                        and transport != LEFT_KEY
-                        and transport != RIGHT_KEY
-                        and BACK_KEY not in transport
+                        received_bytes != UP_KEY
+                        and received_bytes != DOWN_KEY
+                        and received_bytes != LEFT_KEY
+                        and received_bytes != RIGHT_KEY
+                        and BACK_KEY not in received_bytes
                 ):
                     cursor_count += 1
-                    chan.send(transport)
-                    command += transport.decode("utf-8")
+                    packet_count += 1
 
-            packet_count += 1
+                    chan.send(received_bytes)
+                    # error checking for b''
+                    decoded_bytes = received_bytes.decode("utf-8")
+                    if decoded_bytes == b'' :
+                        run = False
+                        break
+                    else :
+                        command += decoded_bytes
+
             # puts curson at start of line
             chan.send(b"\r\n")
             # remoces any endspace characteres
             command = command.rstrip()
             logging.info('Command receied ({}): {}'.format("PLACEHOLDER_IP", command))
 
-            if "exit" in command:
+            if "exit" == command.split(' ')[0]:
                 print("Connection closed (via exit command): " + "PLACEHOLDER_IP" + "\n")
                 run = False
 
-            elif "echo" in command:
+            elif "echo" == command.split(' ')[0]:
                 server.echo(chan, command)
 
-            elif "whoami" in command:
+            elif "whoami" in command.split(' ')[0]:
                 server.whoami(chan, command)
 
             else:
@@ -100,6 +108,8 @@ class Server(paramiko.ServerInterface):
     def check_channel_request(self, kind, chanid):
         if kind == "session" :
             return paramiko.OPEN_SUCCEEDED
+        else :
+            return paramiko.OPEN_FAILED
 
 # checks user's password
     def check_auth_password(self, username: str, password: str):
@@ -111,7 +121,7 @@ class Server(paramiko.ServerInterface):
         self.event.set()
         cmd = command.decode()
         logger.info("channel_exec request received: %s", cmd)
-        if cmd == "banner" :
+        if cmd.split(' ')[0] == "banner" :
             self.banner(channel)
 
         elif cmd.split(' ')[0] == "echo" :
@@ -186,13 +196,13 @@ def listen():
         return
 
     print(f"[Server] Channel opened successfully:")
+    user = t.get_username()
+    ip = t.getpeername()
     # function for retrieving username, part of paramiko
-    print(t.get_username())
-    print(t.getpeername())
 
     # wait up to 10s for a shell/exec request to land
     if server.event.wait(10):
-        shell_env(server, chan)
+        shell_env(server, chan, user, ip)
 
     chan.close()
     t.close()
