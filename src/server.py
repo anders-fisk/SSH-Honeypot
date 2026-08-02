@@ -186,7 +186,12 @@ def listen():
 
     # Starts the server and negotiates a new session as server
     server = Server()
-    t.start_server(server=server)
+
+    try :
+        t.start_server(server=server)
+    except paramiko.SSHException as err:
+        print("Dropped bad connection.")
+        t.close()
 
 
     chan = t.accept()
