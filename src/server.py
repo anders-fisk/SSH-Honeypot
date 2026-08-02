@@ -43,7 +43,7 @@ def shell_env(server,chan, username, ip_address):
                 # handles backspace character and end charactetr erasing
                 if packet_count > 500 :
                     print('MAXIMUM PACKET LIMIT REACHED')
-                    run = False
+                    raise Exception("MAXIMUM PACKET REACHED")
 
                 elif BACK_KEY in received_bytes and cursor_count > 0:
                     cursor_count -= 1
@@ -189,7 +189,10 @@ def listen():
 
     try :
         t.start_server(server=server)
-    except paramiko.SSHException as err:
+    except paramiko.SSHException as err :
+        print("Dropped bad connection.")
+        t.close()
+    except Exception("MAXIMUM PACKET REACHED") as err :
         print("Dropped bad connection.")
         t.close()
 
