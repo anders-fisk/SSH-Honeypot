@@ -1,4 +1,4 @@
-from src.server import listen
+from server import listen
 
 if __name__ == "__main__":
     while True:

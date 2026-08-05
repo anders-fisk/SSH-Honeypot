@@ -1,8 +1,7 @@
 """Basic server for password auth."""
-from paramiko import transport
 
 from database_implementation import DatabaseModel
-from src.keypair import generate_host_key
+from keypair import generate_host_key
 import logging
 import threading
 import paramiko
