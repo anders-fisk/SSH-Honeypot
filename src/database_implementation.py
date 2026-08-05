@@ -7,13 +7,13 @@ DB_PATH = os.path.join(DATA_DIR, 'database.db')
 
 class DatabaseModel :
     def __init__(self):
-        self.connection = sqlite3.connect(DB_PATH)
         self.cursor = self.connection.cursor()
         self.cursor.execute("DROP TABLE IF EXISTS DATABASE")
         self.cursor.execute("""
         CREATE TABLE DATABASE (
         IP VARCHAR(255) NOT NULL);
                             """)
+        self.connection = sqlite3.connect(DB_PATH)
 
     def insert_data(self, data):
         self.cursor.execute("INSERT INTO DATABASE VALUES ('{}')".format(data[0]))
