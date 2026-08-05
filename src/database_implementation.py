@@ -11,9 +11,21 @@ class DatabaseModel :
         self.cursor = self.connection.cursor()
         self.cursor.execute("DROP TABLE IF EXISTS DATABASE")
         self.cursor.execute("""
-        CREATE TABLE APP (
+        CREATE TABLE DATABASE (
         IP VARCHAR(255) NOT NULL);
                             """)
+
+    def insert_data(self, data):
+        self.cursor.execute("INSERT INTO DATABASE VALUES ('{}')".format(data[0]))
+        self.connection.commit()
+        print("Data Inserted in the table: {}".format(data))
+
+    def show_all_data(self):
+        self.cursor.execute("SELECT * FROM DATABASE")
+        data_rows = self.cursor.fetchall()
+        for row in data_rows:
+            print('a')
+            print(row)
 
     def close_connection(self):
         self.connection.close()

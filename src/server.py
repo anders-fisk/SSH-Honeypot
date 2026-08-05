@@ -1,6 +1,7 @@
 """Basic server for password auth."""
 from paramiko import transport
 
+from database_implementation import DatabaseModel
 from src.keypair import generate_host_key
 import logging
 import threading
@@ -13,6 +14,10 @@ DOWN_KEY = '\x1b[B'.encode()
 RIGHT_KEY = '\x1b[C'.encode()
 LEFT_KEY = '\x1b[D'.encode()
 BACK_KEY = b'\x7f'
+
+
+# Setup database
+db = DatabaseModel()
 
 # chan.send sends stuff to terminal screen, commands need to be handled differently
 
@@ -170,7 +175,7 @@ def listen():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(("", 22))
+    sock.bind(("", 2222))
     sock.listen(100)
     client, addr = sock.accept()
     t = paramiko.Transport(client)
@@ -207,6 +212,11 @@ def listen():
     user = t.get_username()
     ip = t.getpeername()
     # function for retrieving username, part of paramiko
+
+    # add data to database
+    db.insert_data(ip)
+    # show all data
+    print(db.show_all_data())
 
     # wait up to 10s for a shell/exec request to land
     if server.event.wait(10):
