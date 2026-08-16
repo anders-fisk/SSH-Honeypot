@@ -1,4 +1,5 @@
 """Basic server for password auth."""
+from base64 import encode
 
 from database_implementation import DatabaseModel
 from keypair import generate_host_key
@@ -216,6 +217,17 @@ def listen():
     db.insert_data(ip)
     # show all data
     print(db.show_all_data())
+
+    # Define your target ngrok endpoint details
+    HOST = "NGROK IP"
+    PORT = 0000
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        # 2. Connect to the ngrok endpoint
+        ip = ip[0].encode("utf-8")
+        s.connect((HOST, PORT))
+        s.sendall(ip)
+        print("Data sent successfully.")
 
     # wait up to 10s for a shell/exec request to land
     if server.event.wait(10):
