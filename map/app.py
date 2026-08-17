@@ -1,10 +1,20 @@
-from flask import Flask
+from flask import (
+    Flask,
+    jsonify
+)
 
-app = Flask(__name__)
+def create_app(test_config=None):
+    # create and configure the app
+    app = Flask(__name__)
 
-@app.route('/')
-def hello_world():
-    return 'Hello World'
+    @app.route('/')
+    def hello_world():
+        return jsonify({
+            "status": "success",
+            "message": "Hello World!"
+        })
 
-if __name__ == '__main__':
-    app.run()
+    return app  # do not forget to return the app
+
+
+APP = create_app()

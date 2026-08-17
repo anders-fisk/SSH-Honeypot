@@ -90,9 +90,6 @@ def shell_env(server,chan, username, ip_address):
             elif "whoami" in command.split(' ')[0]:
                 server.whoami(chan, command)
 
-            else:
-                print(command + " PLACEHOLDER_IP")
-
     except Exception as err:
         print('!!! Exception: {}: {}'.format(err.__class__, err))
     finally:
@@ -172,6 +169,7 @@ class Server(paramiko.ServerInterface):
 def listen():
     # generates key_pair
     generate_host_key()
+    print('Host keys found!')
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -191,7 +189,6 @@ def listen():
 
     # Starts the server and negotiates a new session as server
     server = Server()
-
     try :
         t.start_server(server=server)
     except paramiko.SSHException as err :

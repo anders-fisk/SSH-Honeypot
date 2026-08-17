@@ -1,4 +1,6 @@
 from server import listen
+from map.app import APP
+import threading
 import sys
 
 if __name__ == "__main__":
@@ -10,4 +12,4 @@ if __name__ == "__main__":
                 exit(0)
 
     elif sys.argv[1] == "--run":
-        pass
+        APP.run(debug=True)
