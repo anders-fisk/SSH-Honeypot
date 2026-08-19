@@ -1,7 +1,6 @@
 """Basic server for password auth."""
-from base64 import encode
 
-from server.data.database_implementation import DatabaseModel
+from database_implementation import DatabaseModel
 from server.src.shell import shell_env
 from keypair import generate_host_key
 
@@ -10,12 +9,6 @@ import logging
 import threading
 import paramiko
 import socket
-
-# Setup database
-db = DatabaseModel()
-
-# chan.send sends stuff to terminal screen, commands need to be handled differently
-
 # Set up logging globally.
 # basically an alternative for print, just puts DEBUG before everything
 logging.basicConfig(level=logging.DEBUG)
@@ -139,11 +132,6 @@ def listen():
     user = t.get_username()
     ip = t.getpeername()
     # function for retrieving username, part of paramiko
-
-    # add data to database
-    db.insert_data(ip)
-    # show all data
-    print(db.show_all_data())
 
     HOST = "NGROK IP"
     PORT = 0000
