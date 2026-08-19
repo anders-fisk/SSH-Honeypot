@@ -119,10 +119,12 @@ def listen():
     except paramiko.SSHException as err :
         print("Dropped bad connection.")
         # means server will start again
+        sock.close()
         t.close()
         return
     except Exception("MAXIMUM PACKET REACHED") as err :
         print("Dropped bad connection.")
+        sock.close()
         t.close()
         return
 
