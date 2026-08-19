@@ -118,10 +118,13 @@ def listen():
         t.start_server(server=server)
     except paramiko.SSHException as err :
         print("Dropped bad connection.")
+        # means server will start again
         t.close()
+        return
     except Exception("MAXIMUM PACKET REACHED") as err :
         print("Dropped bad connection.")
         t.close()
+        return
 
 
     chan = t.accept()
@@ -145,8 +148,8 @@ def listen():
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         ip = ip[0].encode("utf-8")
-        s.connect((HOST, PORT))
-        s.sendall(ip)
+    #    s.connect((HOST, PORT))
+    #    s.sendall(ip)
         print("Data sent successfully.")
 
     # wait up to 10s for a shell/exec request to land
