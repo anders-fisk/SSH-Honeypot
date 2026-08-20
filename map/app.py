@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, render_template
 from pyngrok import ngrok
 import socket
 import threading
@@ -9,7 +9,7 @@ app = Flask(__name__)
 latest_data = []
 data_lock = threading.Lock()
 
-ngrok.set_auth_token("3Gd4wNod1wndU2Q2C89KYEJEQMM_42wUb9KV7JhCDh1Qio5UT")
+ngrok.set_auth_token("XXXX")
 tcp_tunnel = ngrok.connect(4999, "tcp")
 
 print(f"Public Ngrok Address: {tcp_tunnel.public_url}")
@@ -35,7 +35,7 @@ def get_ip_address():
 
 @app.route('/')
 def index():
-    return "{}".format(latest_data)
+    return render_template('index.html')
 
 #db = DatabaseModel()
 # add data to database
