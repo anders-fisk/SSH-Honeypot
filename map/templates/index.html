@@ -1,10 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Display a map</title>
+    <meta property="og:description" content="Initialize a map in an HTML element with MapLibre GL JS." />
+    <meta property="og:category" content="Getting Started" />
+    <meta property="og:order" content="1" />
+    <meta property="og:created" content="2025-06-25" />
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@6.4.1/dist/maplibre-gl.css' />
+
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
 </head>
 <body>
-Success!!
+<div id="map"></div>
+<script type="module">
+    import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.4.1/dist/maplibre-gl.mjs';
+
+    const map = new maplibregl.Map({
+        container: 'map', // container id
+        style: 'https://demotiles.maplibre.org/style.json', // style URL
+        center: [0, 0], // starting position [lng, lat]
+        zoom: 1, // starting zoom
+        maplibreLogo: true
+    });
+
+    new maplibregl.Marker()
+        .setLngLat([-0.1278, 51.5074])
+        .addTo(map);
+
+  //  const locations = [
+  //{ lng: -0.7885, lat: 50.8365, title: 'Location A' },
+  //{ lng: -0.7500, lat: 50.8500, title: 'Location B' }
+//];
+
+//locations.forEach(loc => {
+ // const marker = new maplibregl.Marker()
+   // .setLngLat([loc.lng, loc.lat])
+    //.setPopup(new maplibregl.Popup().setText(loc.title))
+    //.addTo(map);
+//});
+</script>
 </body>
 </html>
