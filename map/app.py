@@ -1,25 +1,44 @@
-from flask import (
-    Flask,
-    jsonify
-)
-from database_implementation import DatabaseModel
+from flask import Flask, jsonify
+from pyngrok import ngrok
+import socket
+import threading
+import time
 
-def create_app(test_config=None):
-    # create and configure the app
-    app = Flask(__name__)
+app = Flask(__name__)
 
-    @app.route('/')
-    def hello_world():
-        return jsonify({
-            "status": "success",
-            "message": "Hello World!"
-        })
+latest_data = []
+data_lock = threading.Lock()
 
-    return app  # do not forget to return the app
+ngrok.set_auth_token("3Gd4wNod1wndU2Q2C89KYEJEQMM_42wUb9KV7JhCDh1Qio5UT")
+tcp_tunnel = ngrok.connect(4999, "tcp")
 
-db = DatabaseModel()
+print(f"Public Ngrok Address: {tcp_tunnel.public_url}")
+
+
+
+def get_ip_address():
+    local_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    local_socket.bind(("localhost", 4999))
+    local_socket.listen(1)
+    while True:
+        print("Waiting for data from cloud server...")
+        connection, client_address = local_socket.accept()
+
+        data = connection.recv(1024).decode()
+        print(f"Received message: {data}")
+
+        with data_lock:
+            latest_data.append(data)
+
+        time.sleep(1)  # however often it updates
+
+
+@app.route('/')
+def index():
+    return "{}".format(latest_data)
+
+#db = DatabaseModel()
 # add data to database
 # db.insert_data(ip)
 # show all data
 # print(db.show_all_data())
-APP = create_app()

@@ -1,5 +1,5 @@
 from server.src.server import listen
-from map.app import APP
+from map.app import app, get_ip_address
 import threading
 import sys
 
@@ -12,4 +12,9 @@ if __name__ == "__main__":
                 exit(0)
 
     elif sys.argv[1] == "--run" :
-        APP.run(debug=True)
+        t = threading.Thread(target=get_ip_address, daemon=True)
+        t.start()
+
+        # runs on port 5000 by defualt
+        app.run(threaded=True)
+
